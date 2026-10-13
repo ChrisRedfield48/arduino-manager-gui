@@ -108,7 +108,36 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path "${{ matrix.bin }}" -DestinationPath "${{ matrix.archive }}"
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact (attempt 1)
+        id: upload1
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: ${{ matrix.target }}
+          path: ${{ matrix.archive }}
+          if-no-files-found: error
+
+      - name: Wait before retry
+        if: steps.upload1.outcome == 'failure'
+        run: sleep 20
+
+      - name: Upload artifact (attempt 2)
+        id: upload2
+        if: steps.upload1.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: ${{ matrix.target }}
+          path: ${{ matrix.archive }}
+          if-no-files-found: error
+
+      - name: Wait before retry
+        if: steps.upload1.outcome == 'failure' && steps.upload2.outcome == 'failure'
+        run: sleep 40
+
+      - name: Upload artifact (attempt 3)
+        if: steps.upload1.outcome == 'failure' && steps.upload2.outcome == 'failure'
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
           path: ${{ matrix.archive }}
